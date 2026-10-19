@@ -1,5 +1,5 @@
 
-name: CodeForge Android APK Build
+name: CodeForge Android APK
 
 on:
   push:
@@ -11,27 +11,31 @@ permissions:
   contents: read
 
 concurrency:
-  group: android-build-${{ github.ref }}
+  group: codeforge-android-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
-    name: Build Android Debug APK
+    name: Build Debug APK
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
+
+    env:
+      ANDROID_HOME: ${{ runner.temp }}/android-sdk
+      ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
 
     steps:
-      - name: Checkout source
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Verify project files
+      - name: Check project files
         shell: bash
         run: |
-          if [ ! -f package.json ]; then
-            echo "::error::package.json not found in repository root."
+          set -e
+          test -f package.json || {
+            echo "::error::package.json missing from repository root"
             exit 1
-          fi
-          echo "Project package.json found."
+          }
           cat package.json
 
       - name: Setup Node.js
@@ -45,32 +49,64 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+          cache: gradle
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          cmdline-tools-version: 12266719
-
-      - name: Install Android SDK components
+      - name: Download Android command-line tools
         shell: bash
         run: |
-          sdkmanager --licenses
-          sdkmanager \
+          set -euo pipefail
+
+          sudo apt-get update
+          sudo apt-get install -y unzip curl
+
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+
+          curl -fL \
+            https://dl.google.com/android/repository/commandlinetools-linux-12266719_latest.zip \
+            -o "$RUNNER_TEMP/android-tools.zip"
+
+          mkdir -p "$RUNNER_TEMP/android-tools"
+          unzip -q "$RUNNER_TEMP/android-tools.zip" \
+            -d "$RUNNER_TEMP/android-tools"
+
+          mkdir -p "$ANDROID_HOME/cmdline-tools/latest"
+
+          cp -a "$RUNNER_TEMP/android-tools/cmdline-tools/." \
+            "$ANDROID_HOME/cmdline-tools/latest/"
+
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+
+          yes | "$SDKMANAGER" --licenses || true
+
+          "$SDKMANAGER" --install \
             "platform-tools" \
             "platforms;android-35" \
             "build-tools;35.0.0"
 
-
       - name: Install npm dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Ensure TypeScript is available
+      - name: Ensure TypeScript dependency
         run: npm install --no-save --no-package-lock typescript@^5
 
-      - name: Verify build script
+      - name: Validate build script
         shell: bash
         run: |
-          node -e "const p=require('./package.json'); if(!p.scripts || !p.scripts.build) { console.error('Missing scripts.build in package.json'); process.exit(1); } console.log('Build script:', p.scripts.build)"
+          node -e "
+            const p = require('./package.json');
+            if (!p.scripts || !p.scripts.build) {
+              console.error('Missing scripts.build in package.json');
+              process.exit(1);
+            }
+          "
 
       - name: Build web application
         run: npm run build
@@ -82,39 +118,45 @@ jobs:
              [ ! -f capacitor.config.json ] && \
              [ ! -f capacitor.config.js ] && \
              [ ! -f capacitor.config.mjs ]; then
-            echo "::error::Capacitor config not found."
+            echo "::error::Capacitor configuration not found"
             exit 1
           fi
 
-      - name: Prepare Android project
+      - name: Prepare Capacitor Android
         shell: bash
         run: |
+          set -euo pipefail
+
           if [ ! -d android ]; then
             npx cap add android
           fi
+
           npx cap sync android
 
       - name: Verify Gradle wrapper
         shell: bash
         run: |
-          if [ ! -f android/gradlew ]; then
-            echo "::error::Android Gradle wrapper not found."
+          test -f android/gradlew || {
+            echo "::error::android/gradlew not found"
             exit 1
-          fi
+          }
+
           chmod +x android/gradlew
 
       - name: Build debug APK
         working-directory: android
         run: ./gradlew --no-daemon --stacktrace assembleDebug
 
-      - name: Verify APK
+      - name: Verify APK exists
         shell: bash
         run: |
           APK="android/app/build/outputs/apk/debug/app-debug.apk"
-          if [ ! -s "$APK" ]; then
-            echo "::error::APK was not generated."
+
+          test -s "$APK" || {
+            echo "::error::APK was not generated"
             exit 1
-          fi
+          }
+
           ls -lh "$APK"
 
       - name: Upload APK artifact
