@@ -1,0 +1,29 @@
+{
+  "name": "@codeforge/native",
+  "version": "1.0.0",
+  "description": "CodeForge native Android folder storage and browser bridge",
+  "main": "dist/plugin.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
+  "files": [
+    "android/src/main/",
+    "android/build.gradle",
+    "dist/",
+    "README.md"
+  ],
+  "keywords": [
+    "capacitor",
+    "codeforge",
+    "android",
+    "storage"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@capacitor/core": ">=8.0.0 <9.0.0"
+  },
+  "capacitor": {
+    "android": {
+      "src": "android"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+import React, { useMemo, useState } from 'react';
+import { Files, Search, GitBranch, Blocks, Settings, Plus, FolderPlus, MoreHorizontal, Trash2, Pencil, Copy, FileCode2, FileType2, FileJson, Save, FolderOpen, CheckCircle2 } from 'lucide-react';
+import { useStore } from '../store/useStore';
+
+export default function Sidebar() {
+  const { activeSidebar, files, activeFileId, setActiveFile, createFile, deleteFile, renameFile, searchQuery, setSearchQuery, sidebarVisible, theme, setTheme, saveProject, saving, workspaceFolder, selectWorkspaceFolder } = useStore();
+  const [menuId,setMenuId]=useState(null);
+  const getIcon=f=>f.name.endsWith('.html')?<FileCode2 size={14}/>:f.name.endsWith('.css')?<FileType2 size={14}/>:f.name.endsWith('.json')?<FileJson size={14}/>:<span className="file-ext">{f.name.split('.').pop()?.slice(0,3).toUpperCase()}</span>;
+  const visibleFiles=useMemo(()=>files.filter(f=>`${f.name}\n${f.content}`.toLowerCase().includes(searchQuery.toLowerCase())),[files,searchQuery]);
+  if(!sidebarVisible)return null;
+  const askName=(message='File name')=>{const n=window.prompt(message);if(n?.trim())createFile(n.trim())};
+  return <div className="sidebar">
+    <div className="sidebar-header"><span>{activeSidebar==='explorer'?'EXPLORER':activeSidebar.toUpperCase()}</span>{activeSidebar==='explorer'&&<div className="sidebar-tools"><Plus size={14} onClick={()=>askName()}/><FolderPlus size={14} onClick={()=>askName('New file name')}/><Save size={14} className={saving?'spin':''} onClick={saveProject}/></div>}</div>
+    {activeSidebar==='explorer'&&<>
+      <div className="workspace-label"><span>{workspaceFolder?'WORKSPACE FOLDER':'LOCAL WORKSPACE'}</span>{workspaceFolder?<CheckCircle2 size={13} className="folder-ok"/>:<FolderOpen size={13} onClick={selectWorkspaceFolder} className="folder-open"/>}</div>
+      <div className="file-list">{visibleFiles.length?visibleFiles.map(f=><div key={f.id} className={`file-item ${activeFileId===f.id?'active':''}`} onClick={()=>setActiveFile(f.id)}>{getIcon(f)}<span className="file-name">{f.name}</span>{activeFileId===f.id&&<Trash2 size={12} className="file-action danger" onClick={e=>{e.stopPropagation();if(confirm(`Delete ${f.name}?`))deleteFile(f.id)}}/>}<div className="file-menu-wrap"><MoreHorizontal size={13} onClick={e=>{e.stopPropagation();setMenuId(menuId===f.id?null:f.id)}}/>{menuId===f.id&&<div className="file-menu"><button onClick={()=>{const n=prompt('Rename file',f.name);if(n?.trim())renameFile(f.id,n.trim());setMenuId(null)}}><Pencil size={13}/>Rename</button><button onClick={()=>{createFile(`${f.name.replace(/(\.[^.]+)$/,'')}-copy${f.name.match(/\.[^.]+$/)?.[0]||''}`,f.content);setMenuId(null)}}><Copy size={13}/>Duplicate</button><button className="danger-text" onClick={()=>{deleteFile(f.id);setMenuId(null)}}><Trash2 size={13}/>Delete</button></div>}</div></div>):<div className="sidebar-empty">No matching files.<button onClick={()=>askName()}><Plus size={14}/> New file</button></div>}</div>
+    </>}
+    {activeSidebar==='search'&&<div className="sidebar-section"><div className="search-box"><Search size={15}/><input value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} placeholder="Search files and code…"/></div>{searchQuery&&visibleFiles.map(f=><button className="search-result" key={f.id} onClick={()=>setActiveFile(f.id)}><b>{f.name}</b><small>{f.content.toLowerCase().includes(searchQuery.toLowerCase())?'Code match':'Filename match'}</small></button>)}</div>}
+    {activeSidebar==='git'&&<div className="sidebar-section info-panel"><h3>Source Control</h3><p>Workspace is local. Git remote integration is not connected.</p><div className="fake-branch">⎇ main</div></div>}
+    {activeSidebar==='extensions'&&<div className="sidebar-section"><div className="search-box"><Search size={15}/><input placeholder="Search Extensions…"/></div>{['Emmet','Prettier','Live Preview','Code snippets'].map(x=><div className="extension-item" key={x}><div className="extension-icon">◆</div><div><b>{x}</b><small>Built into CodeForge</small></div><span>✓</span></div>)}</div>}
+    {activeSidebar==='settings'&&<div className="sidebar-section settings-section"><h3>Appearance</h3><div className="theme-buttons"><button className={theme==='github-dark'?'chosen':''} onClick={()=>setTheme('github-dark')}>Dark</button><button className={theme==='vs-light'?'chosen':''} onClick={()=>setTheme('vs-light')}>Light</button></div><h3>Storage</h3><button className="settings-action" onClick={selectWorkspaceFolder}><FolderOpen size={14}/> {workspaceFolder?'Change workspace folder':'Choose workspace folder'}</button><p className="settings-help">CodeForge writes project files only after you grant access to a folder.</p></div>}
+  </div>;
+}

@@ -1,0 +1,33 @@
+{
+  "name": "codeforge-studio",
+  "version": "1.0.0",
+  "description": "CodeForge Studio - 110/110 Complete IDE",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "cap:sync": "cap sync",
+    "cap:android": "cap open android",
+    "cap:doctor": "cap doctor",
+    "android:prepare": "npm run build && npx cap sync android",
+    "android:debug": "npm run android:prepare && cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
+    "@monaco-editor/react": "^4.6.0",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/xterm": "^5.5.0",
+    "emmet-monaco-es": "^5.3.0",
+    "lucide-react": "^0.344.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^4.5.2",
+    "@codeforge/native": "file:./plugins/codeforge-native"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.0.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "vite": "^5.4.2"
+  }
+}

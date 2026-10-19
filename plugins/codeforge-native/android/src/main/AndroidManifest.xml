@@ -1,0 +1,14 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:usesCleartextTraffic="true">
+        <!-- Force the primary Capacitor app and the code-server surface to landscape. -->
+        <activity android:name="com.codeforge.studio.MainActivity" android:screenOrientation="landscape" android:configChanges="orientation|screenSize|keyboardHidden" />
+        <activity android:name="com.codeforge.nativeplugin.CodeServerActivity" android:screenOrientation="landscape" android:configChanges="orientation|screenSize|keyboardHidden" android:exported="false" android:windowSoftInputMode="adjustResize" />
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.codeforge.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/codeforge_file_paths" />
+        </provider>
+    </application>
+</manifest>
