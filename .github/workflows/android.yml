@@ -45,15 +45,15 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      
-      - name: Setup Android SDK
-  uses: android-actions/setup-android@v3
 
-- name: Install Android SDK components
-  shell: bash
-  run: |
-    sdkmanager --licenses
-    sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK components
+        shell: bash
+        run: |
+          sdkmanager --licenses
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
 
 
